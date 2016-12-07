@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>phonegap & jquery mobile boilerplate</title>
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no;" />
+
+		<link rel="stylesheet"  href="css/jquery.mobile.structure.css" />
+		<link rel="stylesheet" href="css/jquery.mobile.theme.css" />
+
+		<script>
+			var userAgent = navigator.userAgent + '';
+			if (userAgent.indexOf('iPhone') > -1) {
+				document.write('<script src="js/lib/cordova-iphone.js"></sc' + 'ript>');
+				var mobile_system = 'iphone';
+			} else if (userAgent.indexOf('Android') > -1) {
+				document.write('<script src="js/lib/cordova-android.js"></sc' + 'ript>');
+				var mobile_system = 'android';
+			} else {
+				var mobile_system = '';
+			}
+		</script>
+
+		<script src="js/lib/jquery.js"></script>
+		<!-- your scripts here -->
+		<script src="js/app/app.js"></script>
+		<script src="js/app/bootstrap.js"></script>
+		<script src="js/lib/jquery.mobile.js"></script>
+
+	</head>
+	<body>
+
+		<div data-role="page">
+
+			<div data-role="header" style="text-shadow: none">
+				<h1>Location<sup style="color: green; font-weight: bolder;">+</sup></h1>
+				<a href="index.html" data-role="button" data-icon="refresh" data-iconpos="notext" style="background: white;border: none;" id="refresh">Refresh</a>
+			</div><!-- /header -->
+
+			<div data-role="content" style="text-shadow: none">
+				<span style="font-weight:lighter; font-size:smaller">Your current location id</span>
+				<p style="font-weight:lighter; font-size:smaller">
+					<b style="color: green">Long : </b><span id="long" style="color: green"></span>
+				</p>
+				<p style="font-weight:lighter; font-size:smaller">
+					<b style="color: green">Lat : </b><span id="lat" style="color: green"></span>
+				</p>
+				<hr style="border: 1px solid silver;"/>
+				<br />
+				<label><b>Investor ID: </b></label>
+				<input type="text" id='investorID' placeholder="Enter Investor ID Here" style="border: 0px; box-shadow: none;border-bottom: 1px solid blue;"/>
+				<p tabindex="0" id="displayArea" style="display:none;  background: #DDF0F8;border-radius:25px; padding: 10px; font-size:smaller">
+
+				</p>
+				<button style="background: green" id="loadDetails">
+					Load Details
+				</button>
+				<button id="updateDetails">
+					Update Location
+				</button>
+				<div data-role="popup" id="popupMap" data-overlay-theme="a" data-theme="a" data-corners="false" data-tolerance="15,15">
+					<a href="#" data-rel="back" data-role="button" data-theme="a" data-icon="delete" data-iconpos="notext" class="ui-btn-right">Close</a>
+					<iframe width="480" height="320" seamless></iframe>
+					<!-- src="map.html" -->
+				</div>
+				<a class='btnShowMap' href='#popupMap' data-latlng='38.973542,-76.495587' data-rel='popup' data-position-to='window' data-role='button' data-theme='b' data-inline='true' style="display: none;">Open Map</a>
+			</div><!-- /content -->
+			<div style="text-align: center;">
+				<img src="js/GIPC.png" />
+			</div>
+		</div><!-- /page -->
+
+	</body>
+	<script>
+		$(function() {
+
+			var Geo = {};
+
+			if (navigator.geolocation) {
+				navigator.geolocation.getCurrentPosition(success, error);
+			}
+
+			//Get the latitude and the longitude;
+			function success(position) {
+				Geo.lat = position.coords.latitude;
+				Geo.lng = position.coords.longitude;
+				populateHeader(Geo.lat, Geo.lng);
+			}
+
+			function error() {
+				console.log("Geocoder failed");
+			}
+
+			function populateHeader(lat, lng) {
+				$("#lat").html(lat);
+				$("#long").html(lng);
+			}
+
+		});
+	</script>
+	<script>
+		$("#loadDetails").click(function() {
+			$(this).html('Loading...');
+			var investorID = $("#investorID").val();
+
+			$.post("http://197.253.124.249/handheld/locationplus/fetchDetail.php", {
+				key : investorID
+			}, function(data) {
+				var details = data.split('|');
+				$("#displayArea").css('display', 'block');
+				$("#displayArea").html(details[0]);
+				$(".btnShowMap").show();
+				$(".btnShowMap").attr('data-latlng', details[1]);
+			});
+			$(this).html('Load Details');
+		});
+
+	</script>
+	<script>
+		$("#updateDetails").click(function() {
+			var investorID = $("#investorID").val();
+			var reConfirm = confirm("Are you sure you want to update this record");
+			if (reConfirm == true) {
+				var Geo = {};
+
+				if (navigator.geolocation) {
+					navigator.geolocation.getCurrentPosition(success, error);
+				}
+
+				//Get the latitude and the longitude;
+				function success(position) {
+					Geo.lat = position.coords.latitude;
+					Geo.lng = position.coords.longitude;
+					populateHeader(Geo.lat, Geo.lng);
+				}
+
+				function error() {
+					console.log("Geocoder failed");
+				}
+
+				function populateHeader(lat, lng) {
+
+					$.post("http://197.253.124.249/handheld/locationplus/updateLocation.php", {
+						key : investorID,
+						lat : lat,
+						lng : lng
+					}, function(data) {
+						alert(data);
+						// $("#displayArea").css('display', 'block');
+						// $("#displayArea").html(data);
+					});
+				};
+			};
+		});
+	</script>
+	<script>
+		$("#refresh").click(function() {
+			location.reload();
+			return false;
+		});
+	</script>
+	<script>
+		function scale(width, height, padding, border) {
+			var scrWidth = $(window).width() - 30,
+			    scrHeight = $(window).height() - 30,
+			    ifrPadding = 2 * padding,
+			    ifrBorder = 2 * border,
+			    ifrWidth = width + ifrPadding + ifrBorder,
+			    ifrHeight = height + ifrPadding + ifrBorder,
+			    h,
+			    w;
+
+			if (ifrWidth < scrWidth && ifrHeight < scrHeight) {
+				w = ifrWidth;
+				h = ifrHeight;
+			} else if ((ifrWidth / scrWidth) > (ifrHeight / scrHeight)) {
+				w = scrWidth;
+				h = (scrWidth / ifrWidth) * ifrHeight;
+			} else {
+				h = scrHeight;
+				w = (scrHeight / ifrHeight) * ifrWidth;
+			}
+
+			return {
+				'width' : w - (ifrPadding + ifrBorder),
+				'height' : h - (ifrPadding + ifrBorder)
+			};
+		};
+
+		//(function($){
+
+		var crsfMobile = {
+
+			page : {
+				contactUs : function() {
+
+				}
+			}
+
+		};
+
+		/*========================================*/
+		/*--initialize Contact Us page functions--*/
+		$(document).on('ready', function() {
+
+			var latlng;
+
+			$('.btnShowMap').on('click', function() {
+				// latlng = $(this).attr('data-latlng');
+				latlng = $('.btnShowMap').attr('data-latlng');
+				$('#popupMap iframe').attr('src', 'showMap.html?latlng=' + latlng);
+			});
+
+			$('#popupMap iframe').attr("width", 0).attr("height", 0);
+
+			$('#popupMap iframe').contents().find("#map_canvas").css({
+				"width" : 0,
+				"height" : 0
+			});
+
+			$('#popupMap').on({
+				popupbeforeposition : function() {
+					latlng = $('.btnShowMap').attr('data-latlng');
+					console.log("popup created with latlng = " + latlng);
+
+					var size = scale(480, 320, 0, 1),
+					    w = size.width,
+					    h = size.height;
+
+					$('#popupMap iframe').attr("width", w).attr("height", h);
+
+					$('#popupMap iframe').contents().find("#map_canvas").css({
+						"width" : w,
+						"height" : h
+					});
+				},
+				popupafterclose : function() {
+					$('#popupMap iframe').removeAttr('src').attr("width", 0).attr("height", 0);
+
+					$('#popupMap iframe').contents().find("#map_canvas").css({
+						"width" : 0,
+						"height" : 0
+					});
+					$('#popupMap iframe').contents().remove();
+
+				}
+			});
+			/*--END Sizing--*/
+
+		});
+		/*--    END Contact Us page functions  --*/
+		/*=======================================*/
+
+	</script>
+</html>
